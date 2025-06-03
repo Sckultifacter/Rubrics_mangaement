@@ -13,6 +13,8 @@ st.title("📝 Rubrics Management System")
 # Sidebar navigation
 page = st.sidebar.selectbox("Choose Action", [
     "Add Rubric",
+    "Add Criterion",    # NEW
+    "Add Level",        # NEW
     "Add Student",
     "Add Assessment",
     "Add Scores",
@@ -30,6 +32,57 @@ if page == "Add Rubric":
             c.execute("INSERT INTO Rubric (title, description) VALUES (?, ?)", (title, description))
             conn.commit()
             st.success("Rubric added.")
+
+# ------------------ Add Criterion ------------------
+elif page == "Add Criterion":
+    st.header("Add Criterion to Rubric")
+
+    rubrics = c.execute("SELECT * FROM Rubric").fetchall()
+    if not rubrics:
+        st.warning("No rubrics available. Please add a rubric first.")
+    else:
+        rubric = st.selectbox("Select Rubric", rubrics, format_func=lambda x: x[1])
+        description = st.text_input("Criterion Description")
+
+        if st.button("Add Criterion"):
+            if description:
+                c.execute("INSERT INTO Criterion (rubric_id, description) VALUES (?, ?)", (rubric[0], description))
+                conn.commit()
+                st.success(f"Criterion added to '{rubric[1]}' rubric.")
+            else:
+                st.error("Criterion description cannot be empty.")
+
+# ------------------ Add Level ------------------
+elif page == "Add Level":
+    st.header("Add Level to Criterion")
+
+    # Fetch criteria along with rubric title for better display
+    criteria = c.execute("""
+        SELECT Criterion.criterion_id, Rubric.title, Criterion.description 
+        FROM Criterion JOIN Rubric ON Criterion.rubric_id = Rubric.rubric_id
+    """).fetchall()
+
+    if not criteria:
+        st.warning("No criteria available. Please add criteria first.")
+    else:
+        crit = st.selectbox(
+            "Select Criterion",
+            criteria,
+            format_func=lambda x: f"{x[1]} - {x[2]}"
+        )
+        level_name = st.text_input("Level Name (e.g., Excellent, Good)")
+        score = st.number_input("Score", min_value=0, step=1)
+
+        if st.button("Add Level"):
+            if level_name and score >= 0:
+                c.execute(
+                    "INSERT INTO Level (criterion_id, level_name, score) VALUES (?, ?, ?)",
+                    (crit[0], level_name, score)
+                )
+                conn.commit()
+                st.success(f"Level '{level_name}' added to criterion '{crit[2]}'.")
+            else:
+                st.error("Please provide valid level name and score.")
 
 # ------------------ Add Student ------------------
 elif page == "Add Student":
