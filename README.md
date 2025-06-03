@@ -1,1 +1,4 @@
-# Rubrics_mangaement
+# Rubrics_mangement
+Requirements
+Streamlit
+Python
