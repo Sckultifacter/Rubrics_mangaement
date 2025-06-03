@@ -11,9 +11,15 @@ c = conn.cursor()
 st.title("📝 Rubrics Management System")
 
 # Sidebar navigation
-page = st.sidebar.selectbox("Choose Action", ["Add Rubric", "Add Student", "Add Scores", "View Reports"])
+page = st.sidebar.selectbox("Choose Action", [
+    "Add Rubric",
+    "Add Student",
+    "Add Assessment",
+    "Add Scores",
+    "View Reports"
+])
 
-# ------------------ PAGE 1: Add Rubric ------------------
+# ------------------ Add Rubric ------------------
 if page == "Add Rubric":
     st.header("Add New Rubric")
     title = st.text_input("Rubric Title")
@@ -24,10 +30,8 @@ if page == "Add Rubric":
             c.execute("INSERT INTO Rubric (title, description) VALUES (?, ?)", (title, description))
             conn.commit()
             st.success("Rubric added.")
-        else:
-            st.error("Rubric title is required.")
 
-# ------------------ PAGE 2: Add Student ------------------
+# ------------------ Add Student ------------------
 elif page == "Add Student":
     st.header("Add Student")
     name = st.text_input("Student Name")
@@ -38,20 +42,39 @@ elif page == "Add Student":
             c.execute("INSERT INTO Student (name, email) VALUES (?, ?)", (name, email))
             conn.commit()
             st.success("Student added.")
-        else:
-            st.error("Both name and email are required.")
 
-# ------------------ PAGE 3: Add Scores ------------------
+# ------------------ Add Assessment ------------------
+elif page == "Add Assessment":
+    st.header("Create New Assessment")
+    rubrics = c.execute("SELECT * FROM Rubric").fetchall()
+
+    if not rubrics:
+        st.warning("No rubrics available. Please add a rubric first.")
+    else:
+        rubric = st.selectbox("Choose Rubric", rubrics, format_func=lambda x: x[1])
+        title = st.text_input("Assessment Title")
+        due_date = st.date_input("Due Date")
+
+        if st.button("Create Assessment"):
+            if title:
+                c.execute("INSERT INTO Assessment (rubric_id, title, due_date) VALUES (?, ?, ?)",
+                          (rubric[0], title, due_date))
+                conn.commit()
+                st.success("Assessment created successfully.")
+            else:
+                st.error("Assessment title is required.")
+
+# ------------------ Add Scores ------------------
 elif page == "Add Scores":
     st.header("Enter Scores")
 
     assessments = c.execute("SELECT * FROM Assessment").fetchall()
     if not assessments:
-        st.warning("No assessments found. Please create an assessment directly in the database.")
+        st.warning("No assessments found. Please add one.")
     else:
         assessment = st.selectbox("Assessment", assessments, format_func=lambda x: x[2])
-
         students = c.execute("SELECT * FROM Student").fetchall()
+
         if not students:
             st.warning("No students found. Add students first.")
         else:
@@ -64,21 +87,26 @@ elif page == "Add Scores":
                 else:
                     for crit in criteria:
                         levels = c.execute("SELECT * FROM Level WHERE criterion_id = ?", (crit[0],)).fetchall()
-                        level = st.selectbox(f"{crit[2]}", levels, format_func=lambda x: f"{x[2]} ({x[3]})", key=f"{crit[0]}")
-                        score = level[3]
-                        if st.button(f"Submit {crit[2]} Score", key=f"submit_{crit[0]}"):
-                            c.execute("""
-                                INSERT INTO Score (assessment_id, student_id, criterion_id, level_id, awarded_score)
-                                VALUES (?, ?, ?, ?, ?)""", 
-                                (assessment[0], student[0], crit[0], level[0], score))
-                            conn.commit()
-                            st.success(f"Score for '{crit[2]}' added.")
+                        if levels:
+                            level = st.selectbox(
+                                f"{crit[2]}", levels,
+                                format_func=lambda x: f"{x[2]} ({x[3]})",
+                                key=f"{crit[0]}"
+                            )
+                            score = level[3]
+                            if st.button(f"Submit {crit[2]} Score", key=f"submit_{crit[0]}"):
+                                c.execute("""
+                                    INSERT INTO Score (assessment_id, student_id, criterion_id, level_id, awarded_score)
+                                    VALUES (?, ?, ?, ?, ?)
+                                """, (assessment[0], student[0], crit[0], level[0], score))
+                                conn.commit()
+                                st.success(f"Score for '{crit[2]}' submitted.")
 
-# ------------------ PAGE 4: View Reports ------------------
+# ------------------ View Reports ------------------
 elif page == "View Reports":
     st.header("Student Report Viewer")
-
     students = c.execute("SELECT * FROM Student").fetchall()
+
     if not students:
         st.info("No students available.")
     else:
