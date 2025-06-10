@@ -154,7 +154,7 @@ elif page == "Add Scores":
                                 """, (assessment[0], student[0], crit[0], level[0], score))
                                 conn.commit()
                                 st.success(f"Score for '{crit[2]}' submitted.")
-
+                                
 # ------------------ View Reports ------------------
 elif page == "View Reports":
     st.header("Student Report Viewer")
@@ -164,18 +164,37 @@ elif page == "View Reports":
         st.info("No students available.")
     else:
         student = st.selectbox("Choose Student", students, format_func=lambda x: x[1])
+
         query = """
-        SELECT A.title AS Assessment, C.description AS Criterion, L.level_name AS Level, S.awarded_score AS Score
+        SELECT A.title AS Assessment, C.description AS Criterion, 
+               S.awarded_score AS Score
         FROM Score S
         JOIN Assessment A ON S.assessment_id = A.assessment_id
         JOIN Criterion C ON S.criterion_id = C.criterion_id
-        JOIN Level L ON S.level_id = L.level_id
         WHERE S.student_id = ?
         """
         df = pd.read_sql_query(query, conn, params=(student[0],))
+
         if df.empty:
             st.info("No scores found for this student.")
         else:
-            st.dataframe(df)
+            # Pivot: assessments as rows, criteria as columns
+            pivot_df = df.pivot_table(
+                index="Assessment", 
+                columns="Criterion", 
+                values="Score", 
+                aggfunc="sum"
+            ).fillna(0)
+
+            # Add total column
+            pivot_df["Total"] = pivot_df.sum(axis=1)
+
+            # Optional: remove criteria columns where all values are 0
+            criteria_cols = pivot_df.columns.drop("Total")
+            pivot_df = pivot_df.loc[:, (pivot_df[criteria_cols] != 0).any(axis=0).tolist() + [True]]
+
+            st.dataframe(pivot_df.style.format(precision=2))
+
+            
 
 conn.close()
