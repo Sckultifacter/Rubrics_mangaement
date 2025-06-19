@@ -1,4 +1,3 @@
-# Rubrics_mangement
 # Rubrics Management System
 
 A powerful yet easy-to-use web app built with Streamlit that helps educators design rubrics, manage assessments, and evaluate student performance efficiently.
