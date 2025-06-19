@@ -1,7 +1,79 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-from rubrics_db import create_tables, create_connection
+
+# Database Setup
+DB_NAME = "rubrics.db"
+
+def create_connection():
+    return sqlite3.connect(DB_NAME, check_same_thread=False)
+
+def create_tables():
+    conn = create_connection()
+    c = conn.cursor()
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS Rubric (
+            rubric_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            description TEXT
+        )
+    """)
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS Criterion (
+            criterion_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rubric_id INTEGER,
+            description TEXT,
+            FOREIGN KEY (rubric_id) REFERENCES Rubric(rubric_id)
+        )
+    """)
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS Level (
+            level_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            criterion_id INTEGER,
+            level_name TEXT,
+            score INTEGER,
+            FOREIGN KEY (criterion_id) REFERENCES Criterion(criterion_id)
+        )
+    """)
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS Student (
+            student_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            email TEXT
+        )
+    """)
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS Assessment (
+            assessment_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rubric_id INTEGER,
+            title TEXT,
+            due_date DATE,
+            FOREIGN KEY (rubric_id) REFERENCES Rubric(rubric_id)
+        )
+    """)
+
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS Score (
+            score_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            assessment_id INTEGER,
+            student_id INTEGER,
+            criterion_id INTEGER,
+            level_id INTEGER,
+            awarded_score INTEGER,
+            FOREIGN KEY (assessment_id) REFERENCES Assessment(assessment_id),
+            FOREIGN KEY (student_id) REFERENCES Student(student_id),
+            FOREIGN KEY (criterion_id) REFERENCES Criterion(criterion_id),
+            FOREIGN KEY (level_id) REFERENCES Level(level_id)
+        )
+    """)
+
+    conn.commit()
+    conn.close()
 
 # Initialize DB
 create_tables()
@@ -47,8 +119,6 @@ elif page == "Add Criterion":
                 c.execute("INSERT INTO Criterion (rubric_id, description) VALUES (?, ?)", (rubric[0], description))
                 conn.commit()
                 st.success(f"Criterion added to '{rubric[1]}' rubric.")
-            else:
-                st.error("Criterion description cannot be empty.")
 
 # ------------------ Add Level ------------------
 elif page == "Add Level":
@@ -63,20 +133,16 @@ elif page == "Add Level":
     else:
         crit = st.selectbox("Select Criterion", criteria, format_func=lambda x: f"{x[1]} - {x[2]}")
         level_name = st.text_input("Level Name (e.g., Excellent, Good)")
-        score = st.number_input("Representative Score", min_value=0, step=1)
-        min_score = st.number_input("Minimum Score", min_value=0, step=1)
-        max_score = st.number_input("Maximum Score", min_value=0, step=1)
+        score = st.number_input("Score", min_value=0, step=1)
 
         if st.button("Add Level"):
-            if level_name and score >= 0:
+            if level_name:
                 c.execute(
-                    "INSERT INTO Level (criterion_id, level_name, score, min_score, max_score) VALUES (?, ?, ?, ?, ?)",
-                    (crit[0], level_name, score, min_score, max_score)
+                    "INSERT INTO Level (criterion_id, level_name, score) VALUES (?, ?, ?)",
+                    (crit[0], level_name, score)
                 )
                 conn.commit()
                 st.success(f"Level '{level_name}' added to criterion '{crit[2]}'.")
-            else:
-                st.error("Please provide valid level name and score range.")
 
 # ------------------ Add Student ------------------
 elif page == "Add Student":
@@ -108,8 +174,6 @@ elif page == "Add Assessment":
                           (rubric[0], title, due_date))
                 conn.commit()
                 st.success("Assessment created successfully.")
-            else:
-                st.error("Assessment title is required.")
 
 # ------------------ Add Scores ------------------
 elif page == "Add Scores":
@@ -134,7 +198,7 @@ elif page == "Add Scores":
                         if levels:
                             level = st.selectbox(
                                 f"{crit[2]}", levels,
-                                format_func=lambda x: f"{x[2]} (Score: {x[3]}, Range: {x[4]}-{x[5]})",
+                                format_func=lambda x: f"{x[2]} (Score: {x[3]})",
                                 key=f"{crit[0]}"
                             )
                             score = level[3]
@@ -156,7 +220,7 @@ elif page == "View Reports":
         student = st.selectbox("Choose Student", students, format_func=lambda x: x[1])
         df = pd.read_sql_query("""
             SELECT A.title AS Assessment, C.description AS Criterion, L.level_name AS Level, 
-                   L.min_score || '-' || L.max_score AS Range, S.awarded_score AS Score
+                   S.awarded_score AS Score
             FROM Score S
             JOIN Assessment A ON S.assessment_id = A.assessment_id
             JOIN Criterion C ON S.criterion_id = C.criterion_id
@@ -168,9 +232,12 @@ elif page == "View Reports":
             st.info("No scores found for this student.")
         else:
             total_df = df.groupby("Assessment")["Score"].sum().reset_index(name="Total Score")
+            grand_total = df["Score"].sum()
+
             st.subheader("Score Breakdown")
             st.dataframe(df)
             st.subheader("Total per Assessment")
             st.dataframe(total_df)
+            st.success(f"\U0001F3AF Grand Total Score: {grand_total}")
 
 conn.close()
