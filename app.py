@@ -82,6 +82,15 @@ c = conn.cursor()
 
 st.title("📝 Rubrics Management System")
 
+# Teacher Info (Front Page)
+st.sidebar.header("Teacher Information")
+teacher_name = st.sidebar.text_input("Teacher Name")
+department = st.sidebar.text_input("Department")
+
+if not teacher_name or not department:
+    st.warning("Please enter teacher name and department to proceed.")
+    st.stop()
+
 # Sidebar navigation
 page = st.sidebar.selectbox("Choose Action", [
     "Add Rubric",
@@ -148,7 +157,7 @@ elif page == "Add Level":
 elif page == "Add Student":
     st.header("Add Student")
     name = st.text_input("Student Name")
-    email = st.text_input("Student USN")
+    email = st.text_input("Student Email")
 
     if st.button("Add Student"):
         if name and email:
