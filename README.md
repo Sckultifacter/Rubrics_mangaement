@@ -8,13 +8,9 @@ The Rubrics Management System is a web-based application developed using Streaml
 
 - [Overview](#overview)
 - [Features](#features)
-- [Technologies Used](#technologies-used)
+- [Technologies Used](#TechStack)
 - [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-- [Directory Structure](#directory-structure)
-- [Use Cases](#use-cases)
-- [License](#license)
+- [Demo Link](#DemoLink)
 - [Author](#author)
 
 ---
