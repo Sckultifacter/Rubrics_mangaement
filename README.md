@@ -52,7 +52,7 @@ The application offers a streamlined user interface to ensure educators can focu
 | Pandas      | Data manipulation and export |
 
 ---
-## Authors
+### Authors
 
 CSE 4A
 Deeksha Sudheer-1BY23CS054
