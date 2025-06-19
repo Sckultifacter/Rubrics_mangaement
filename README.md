@@ -74,12 +74,3 @@ Ensure you have Python 3.7 or higher installed.
 git clone https://github.com/yourusername/rubrics-management-system.git
 cd rubrics-management-system
 
-
-
-
-
-### Clone this repository
-
-```bash
-git clone https://github.com/yourusername/rubrics-management-system.git
-cd rubrics-management-system
