@@ -148,7 +148,7 @@ elif page == "Add Level":
 elif page == "Add Student":
     st.header("Add Student")
     name = st.text_input("Student Name")
-    email = st.text_input("Student Email")
+    email = st.text_input("Student USN")
 
     if st.button("Add Student"):
         if name and email:
