@@ -52,6 +52,11 @@ The application offers a streamlined user interface to ensure educators can focu
 | Pandas      | Data manipulation and export |
 
 ---
+##Authors
+CSE 4A
+Deeksha Sudheer-1BY23CS054
+Charuvi L S-1BY23CS048
+---
 ## Demo Link
 https://rubrics-mangement-054-048-cse4a.streamlit.app/
 
